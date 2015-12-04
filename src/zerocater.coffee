@@ -21,14 +21,15 @@ moment = require 'moment'
 cheerio = require 'cheerio'
 
 module.exports = (robot) =>
-  robot.respond /zerocater( .*)?/i, (msg) ->
+  robot.respond /zerocater( .*)?( allergies)?/i, (msg) ->
     date = if msg.match[1] then msg.match[1].trim() else ''
+    allergies = msg.match[2] isnt undefined
     if date isnt undefined && date != ''
       date = getTimestamp(date)
       if date is false
-        getCatering msg, false
+        getCatering msg, false, allergies
       else
-        getCatering msg, date
+        getCatering msg, date, allergies
     else
       getCatering msg, moment()
 
@@ -47,7 +48,7 @@ getTimestamp = (date) ->
   else
     return false
 
-getCatering = (msg, date) ->
+getCatering = (msg, date, allergies) ->
   if date is false
     return msg.send 'I don\'t know when that is.'
 
@@ -94,7 +95,14 @@ getCatering = (msg, date) ->
           if (instructions != '')
             emit += ' - Note: ' + instructions + '\n'
 
-        msg.send emit
+        allergens = /(cashew)?(pistachio)?(mango)?(macadamia)?(lemon)?/igm
+        reactions = description.match(allergens)
+
+        if allergies
+          if reactions
+            msg.send reactions.join(', ')
+        else
+          msg.send emit
 
       if (!cateringFound)
         msg.send "Sorry, I was unable to find a menu for #{searchDate}."
